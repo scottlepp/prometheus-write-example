@@ -5,9 +5,6 @@
   "main": "dist/client.js",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/client.js",
-    "dev": "ts-node src/client.ts",
-    "test": "ts-node src/test.ts",
     "simple": "ts-node src/simple-test.ts",
     "watch": "tsc --watch"
   },
