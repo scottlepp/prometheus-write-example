@@ -14,13 +14,13 @@ interface PrometheusResponse {
 
 const PROMETHEUS_URL = process.env.PROMETHEUS_URL || 'http://localhost:9090';
 
-async function queryPrometheus(): Promise<void> {
+async function queryPrometheus(query: string, name: string): Promise<void> {
   try {
-    console.log('🔍 Querying: Demo Counter');
-    console.log('   Query: demo_counter_total');
+    console.log(`🔍 Querying: ${name}`);
+    console.log(`   Query: ${query}`);
     
     const response = await axios.get<PrometheusResponse>(`${PROMETHEUS_URL}/api/v1/query`, {
-      params: { query: 'demo_counter_total' },
+      params: { query },
       timeout: 10000
     });
     
@@ -39,8 +39,9 @@ async function queryPrometheus(): Promise<void> {
           
           const metricName = result.metric.__name__ || 'unknown';
           const value = result.value[1];
+          const timestamp = new Date(parseInt(result.value[0].toString()) * 1000).toISOString();
           
-          console.log(`      ${index + 1}. ${metricName}${labels ? `{${labels}}` : ''} = ${value}`);
+          console.log(`      ${index + 1}. ${metricName}${labels ? `{${labels}}` : ''} = ${value} @ ${timestamp}`);
         });
       } else {
         console.log(`   ⚠️  No data found for this query`);
@@ -70,7 +71,7 @@ async function getPrometheusStatus(): Promise<boolean> {
 }
 
 async function main(): Promise<void> {
-  console.log('🚀 Simple Prometheus Remote Write Test');
+  console.log('🚀 Enhanced Prometheus Remote Write Test');
   console.log(`📍 Prometheus URL: ${PROMETHEUS_URL}`);
   console.log('=' .repeat(50));
   
@@ -90,14 +91,27 @@ async function main(): Promise<void> {
   console.log('\n⏳ Waiting for metrics to be processed...');
   await new Promise(resolve => setTimeout(resolve, 2000));
   
-  // Run the query
-  console.log('\n📈 Running query...');
-  await queryPrometheus();
+  // Run multiple queries
+  console.log('\n📈 Running queries...');
   
-  console.log('\n✨ Test completed!');
+  const queries = [
+    { query: 'demo_counter_total', name: 'Demo Counter' },
+    { query: 'demo_gauge', name: 'Demo Gauge' },
+    { query: 'http_requests_total', name: 'HTTP Requests' },
+    { query: 'http_request_duration_seconds', name: 'HTTP Request Duration' },
+    { query: 'custom_metric', name: 'Custom Metric' }
+  ];
+  
+  for (const queryInfo of queries) {
+    await queryPrometheus(queryInfo.query, queryInfo.name);
+    console.log(''); // Add spacing between queries
+  }
+  
+  console.log('✨ Test completed!');
   console.log('\n💡 Tips:');
   console.log('   - Visit http://localhost:9090 for Prometheus UI');
   console.log('   - Run this test again to see updated values');
+  console.log('   - Try queries like: demo_counter_total{service="demo-service"}');
 }
 
 main().catch((error) => {
