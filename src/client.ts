@@ -127,6 +127,9 @@ async function metricsToRemoteWrite(): Promise<Buffer> {
   
   // Create protobuf message
   const writeRequest = { timeseries };
+
+  console.log('📦 Preparing to send remote-write data (complex client):');
+  console.log(JSON.stringify(writeRequest, null, 2));
   
   // Validate and encode
   const errMsg = WriteRequest.verify(writeRequest);

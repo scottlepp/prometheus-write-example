@@ -109,6 +109,9 @@ export async function sendMetricsToPrometheus(): Promise<void> {
       
       console.log(`   ${index + 1}. ${metricName}${labels ? `{${labels}}` : ''} = ${value} @ ${timestamp}`);
     });
+
+    console.log('📦 Preparing to send remote-write data (simple client):');
+    console.log(JSON.stringify({ timeseries }, null, 2));
     
     // Send metrics using the prometheus-remote-write package
     await pushTimeseries(timeseries, {
