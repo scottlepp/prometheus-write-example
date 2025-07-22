@@ -7,30 +7,52 @@ import * as protobuf from 'protobufjs';
 const register = new promClient.Registry();
 promClient.collectDefaultMetrics({ register });
 
-// Create custom metrics
+// Create custom metrics with more comprehensive labels
 const customCounter = new promClient.Counter({
   name: 'demo_counter_total',
   help: 'A demo counter that increments over time',
-  labelNames: ['service', 'environment']
+  labelNames: ['service', 'environment', 'version']
 });
 
 const customGauge = new promClient.Gauge({
   name: 'demo_gauge',
   help: 'A demo gauge that fluctuates',
-  labelNames: ['service', 'environment']
+  labelNames: ['service', 'environment', 'type']
 });
 
 const customHistogram = new promClient.Histogram({
   name: 'demo_duration_seconds',
   help: 'A demo histogram of durations',
-  labelNames: ['service', 'operation'],
+  labelNames: ['service', 'operation', 'method'],
   buckets: [0.1, 0.5, 1, 2, 5]
+});
+
+const httpRequestsTotal = new promClient.Counter({
+  name: 'http_requests_total',
+  help: 'Total number of HTTP requests',
+  labelNames: ['service', 'method', 'status', 'endpoint']
+});
+
+const httpRequestDuration = new promClient.Histogram({
+  name: 'http_request_duration_seconds',
+  help: 'Duration of HTTP requests in seconds',
+  labelNames: ['service', 'method', 'endpoint', 'status'],
+  buckets: [0.1, 0.5, 1, 2, 5]
+});
+
+const customMetric = new promClient.Gauge({
+  name: 'custom_metric',
+  help: 'A custom metric for testing',
+  labelNames: ['service', 'type', 'version', 'environment']
 });
 
 // Register metrics
 register.registerMetric(customCounter);
 register.registerMetric(customGauge);
 register.registerMetric(customHistogram);
+register.registerMetric(httpRequestsTotal);
+register.registerMetric(httpRequestDuration);
+register.registerMetric(customMetric);
 
 // Configuration
 const PROMETHEUS_URL = process.env.PROMETHEUS_URL || 'http://localhost:9090';
@@ -149,20 +171,44 @@ export async function sendMetricsToPrometheus(): Promise<void> {
   }
 }
 
-// Function to update metrics
+// Function to update metrics with comprehensive data
 export function updateMetrics(): void {
-  // Increment counter
-  customCounter.labels('demo-service', 'development').inc();
+  const timestamp = Date.now();
   
-  // Update gauge with random value
+  // Update counter with version label
+  customCounter.labels('demo-service', 'development', '1.0.0').inc();
+  
+  // Update gauge with type label
   const gaugeValue = Math.random() * 100;
-  customGauge.labels('demo-service', 'development').set(gaugeValue);
+  customGauge.labels('demo-service', 'development', 'performance').set(gaugeValue);
   
-  // Observe histogram with random duration
+  // Observe histogram with method label
   const duration = Math.random() * 3;
-  customHistogram.labels('demo-service', 'demo-operation').observe(duration);
+  customHistogram.labels('demo-service', 'demo-operation', 'POST').observe(duration);
   
-  console.log(`📊 Updated metrics - Gauge: ${gaugeValue.toFixed(2)}, Duration: ${duration.toFixed(2)}s`);
+  // Simulate HTTP requests
+  const httpMethods = ['GET', 'POST', 'PUT', 'DELETE'];
+  const statusCodes = ['200', '404', '500'];
+  const endpoints = ['/api/v1/write', '/metrics', '/health'];
+  
+  const method = httpMethods[Math.floor(Math.random() * httpMethods.length)] || 'GET';
+  const status = statusCodes[Math.floor(Math.random() * statusCodes.length)] || '200';
+  const endpoint = endpoints[Math.floor(Math.random() * endpoints.length)] || '/api/v1/write';
+  
+  // Increment HTTP request counter
+  httpRequestsTotal.labels('demo-service', method, status, endpoint).inc();
+  
+  // Observe HTTP request duration
+  const httpDuration = Math.random() * 2;
+  httpRequestDuration.labels('demo-service', method, endpoint, status).observe(httpDuration);
+  
+  // Update custom metric with comprehensive labels
+  customMetric.labels('demo-service', 'test', '1.0.0', 'development').set(42.0);
+  
+  console.log(`📊 Updated metrics at ${new Date(timestamp).toISOString()}`);
+  console.log(`   - Gauge: ${gaugeValue.toFixed(2)}`);
+  console.log(`   - Duration: ${duration.toFixed(2)}s`);
+  console.log(`   - HTTP ${method} ${endpoint} -> ${status} (${httpDuration.toFixed(2)}s)`);
 }
 
 // Function to generate and send metrics
